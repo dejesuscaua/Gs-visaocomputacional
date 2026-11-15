@@ -1,0 +1,2 @@
+# Detector em tempo real (inclui PyTorch, OpenCV e NumPy como dependências)
+ultralytics==8.4.214

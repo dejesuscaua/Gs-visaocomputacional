@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Treino e dados: imagens ficam no Roboflow, não no Git
+runs/
+datasets/
+dataset/*/
+*.zip
+
+# Pesos: só o modelo final da equipe é versionado
+*.pt
+!modelo/best.pt
+
+# Eventos reais de uma casa não vão para o repositório
+resultados/eventos.csv
+resultados/*.mp4
+
+# Segredos
+.env

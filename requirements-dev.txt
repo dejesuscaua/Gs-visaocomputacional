@@ -1,0 +1,2 @@
+# Só o necessário para os testes da regra e da saída de eventos (não precisa de PyTorch)
+pytest==9.2.0

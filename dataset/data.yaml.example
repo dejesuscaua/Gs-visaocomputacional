@@ -1,0 +1,13 @@
+# Exemplo do data.yaml exportado pelo Roboflow (formato YOLOv8/YOLO11).
+# O notebook usa o arquivo que vem no download; este serve de referência para a ordem das classes.
+path: ../datasets/seguwatts-vision
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: lampada_acesa
+  1: lampada_apagada
+  2: tela_ligada
+  3: tela_desligada
+  4: pessoa
