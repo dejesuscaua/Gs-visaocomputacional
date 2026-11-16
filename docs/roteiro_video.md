@@ -13,8 +13,8 @@ O `--demo` reduz o tempo-limite para 10 s, para a cena caber no vídeo. A tecla 
 | Tempo | Cena | Fala sugerida |
 |---|---|---|
 | 0:00–0:20 | Vitrine do SeguWatts no navegador | "A conta de luz mostra só o total. Um desperdício comum nenhum medidor enxerga: o aparelho ligado sem ninguém usando." |
-| 0:20–0:45 | Fotos do dataset no Roboflow, contagem por classe | "Fotografamos as nossas casas: [N] imagens, 5 classes, anotadas e revisadas pela equipe." |
-| 0:45–1:15 | Notebook: curvas de treino, matriz de confusão, tabela de métricas | "YOLO11 nano treinado a partir do COCO. No teste: mAP@50 de [X]. O COCO sabe o que é uma TV; o nosso modelo sabe se ela está ligada." |
+| 0:20–0:45 | Página do dataset no Roboflow Universe e a tabela de contagem por classe do notebook | "Treinamos a YOLO com [N] imagens públicas de lâmpadas acesas e apagadas; as pessoas vêm de um segundo modelo, pré-treinado no COCO." |
+| 0:45–1:15 | Notebook: curvas de treino, matriz de confusão, tabela de métricas | "YOLO11 nano treinada a partir do COCO. No teste: mAP@50 de [X]. O COCO não conhece lâmpadas nem sabe se estão acesas; o nosso modelo sabe." |
 | 1:15–2:15 | **Demonstração** (`demo_final.mp4` do Colab ou webcam ao vivo): (1) pessoa na sala com luz e TV: painel verde "ocupado"; (2) a pessoa sai: barra de contagem; (3) depois de 10 s: faixa magenta "Possível desperdício"; (4) a pessoa volta: o alerta some | Narre cada mudança de estado. Mostre no canto o FPS. |
 | 2:15–2:35 | Execução no n8n recebendo o webhook e o e-mail ao morador; o `resultados/eventos.csv` aberto | "O evento leva só cômodo, aparelhos, horário e custo estimado. Nenhuma imagem sai da casa." |
 | 2:35–3:00 | Slide de limitações e próximos passos | "Limites: dataset de cinco casas e potência estimada. Próximo passo: rodar na ESP32-S3 do EcoBot." |

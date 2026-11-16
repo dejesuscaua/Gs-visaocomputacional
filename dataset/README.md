@@ -1,6 +1,6 @@
 # Dataset SeguWatts Vision
 
-Imagens de cômodos reais das casas da equipe, anotadas com 5 classes. As imagens **não** ficam neste repositório (tamanho e privacidade). Elas ficam no projeto do Roboflow, e o notebook baixa a versão exportada.
+A entrega usa um dataset público do Roboflow Universe, baixado pelo notebook (seção abaixo). As seções seguintes descrevem como montar um dataset próprio com fotos das casas da equipe, para uma versão 2 mais fiel ao ambiente real. As imagens **não** ficam neste repositório (tamanho e privacidade).
 
 | Item | Valor |
 |---|---|
@@ -22,6 +22,19 @@ Imagens de cômodos reais das casas da equipe, anotadas com 5 classes. As imagen
 | 4 | `pessoa` | pessoa inteira ou parcial (mais de 1/3 do corpo visível) | pessoa em foto, quadro ou na própria TV |
 
 A ordem dos IDs precisa ser a mesma no Roboflow. Exporte com estas classes e nesta ordem.
+
+## Opção usada na entrega: dataset público
+
+O treino usa um dataset público já anotado do Roboflow Universe, baixado pelo notebook:
+
+| Item | Valor |
+|---|---|
+| Dataset | [Light Detection · infocomm-thingy](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq) |
+| Classes originais | `Lamp On`, `Lamp Off`, `Light Bulb On`, `Light Bulb Off` |
+| Tradução | `*On` → `lampada_acesa`; `*Off` → `lampada_apagada` (`normalizar_classe`) |
+| Versão, número de imagens e licença | `[preencher a partir da célula 2 do notebook]` |
+
+Pessoas vêm da YOLO pré-treinada no COCO; por isso o dataset não precisa da classe `pessoa`. As fotos próprias abaixo continuam válidas para melhorar o modelo nas casas reais (versão 2).
 
 ## Atalho para o prazo da GS
 

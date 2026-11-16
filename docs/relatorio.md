@@ -18,7 +18,7 @@
 
 *(até 250 palavras; esta versão tem cerca de 220 sem os números)*
 
-O SeguWatts é um assistente de uso consciente de energia para famílias de renda baixa e média no estado de São Paulo. A conta de luz mostra só o total do mês e não revela desperdícios do dia a dia, como uma luz ou uma TV que ficam ligadas em um cômodo vazio. O sensor de luminosidade do protótipo físico do projeto (EcoBot) percebe que há luz, mas não distingue luz natural de lâmpada nem sabe se há alguém no cômodo. Este trabalho resolve essa limitação com visão computacional. Treinamos uma rede YOLO11 nano, por transferência de aprendizado a partir dos pesos COCO, com cerca de [preencher] fotografias de cômodos reais das casas da equipe, anotadas em cinco classes: lâmpada acesa, lâmpada apagada, tela ligada, tela desligada e pessoa. Sobre as detecções de cada quadro, uma regra com suavização temporal identifica quando há aparelho ligado sem ninguém por mais de dois minutos e gera um evento de possível desperdício, com estimativa de energia e custo. O evento, sem nenhuma imagem, é enviado ao fluxo de alertas do SeguWatts no n8n. No conjunto de teste, o modelo atingiu mAP@50 de [preencher] e mAP@50-95 de [preencher], e o detector rodou a [preencher] quadros por segundo em CPU comum. O resultado mostra que é possível, com hardware acessível, transformar uma câmera em um sensor de desperdício que respeita a privacidade do morador.
+O SeguWatts é um assistente de uso consciente de energia para famílias de renda baixa e média no estado de São Paulo. A conta de luz mostra só o total do mês e não revela desperdícios do dia a dia, como uma luz ou uma TV que ficam ligadas em um cômodo vazio. O sensor de luminosidade do protótipo físico do projeto (EcoBot) percebe que há luz, mas não distingue luz natural de lâmpada nem sabe se há alguém no cômodo. Este trabalho resolve essa limitação com visão computacional. Treinamos uma rede YOLO11 nano, por transferência de aprendizado a partir dos pesos COCO, com um dataset público de [preencher] imagens anotadas de lâmpadas acesas e apagadas, e combinamos esse modelo com a YOLO pré-treinada no COCO para detectar pessoas no mesmo quadro. Sobre as detecções de cada quadro, uma regra com suavização temporal identifica quando há aparelho ligado sem ninguém por mais de dois minutos e gera um evento de possível desperdício de iluminação, com estimativa de energia e custo. O evento, sem nenhuma imagem, é enviado ao fluxo de alertas do SeguWatts no n8n. No conjunto de teste, o modelo atingiu mAP@50 de [preencher] e mAP@50-95 de [preencher], e o detector rodou a [preencher] quadros por segundo em CPU comum. O resultado mostra que é possível, com hardware acessível, transformar uma câmera em um sensor de desperdício que respeita a privacidade do morador.
 
 ## Introdução
 
@@ -30,15 +30,16 @@ Há, porém, um desperdício que nenhum medidor de consumo enxerga: o aparelho q
 
 *(50 palavras)*
 
-Treinar um modelo YOLO capaz de identificar, em tempo real, lâmpadas e telas ligadas ou desligadas e a presença de pessoas, transformando essas detecções em eventos de possível desperdício de energia, integrados ao fluxo de alertas do SeguWatts, sem armazenar nem transmitir imagens do morador.
+Treinar um modelo YOLO que reconheça, em tempo real, lâmpadas acesas e apagadas e, junto à detecção de pessoas, transforme o cenário de luz acesa em cômodo vazio em eventos de possível desperdício, integrados ao fluxo de alertas do SeguWatts, sem armazenar nem transmitir imagens.
 
 ## Explicação técnica das ferramentas
 
 | Ferramenta | Uso no projeto |
 |---|---|
 | **YOLO11 (Ultralytics)** | Detector de objetos de estágio único: em uma passada pela rede, prevê caixas e classes para a imagem inteira, o que permite tempo real em CPU. Usamos a variante *nano* (2,6 milhões de parâmetros), que privilegia velocidade. |
-| **Transferência de aprendizado** | O treino parte dos pesos aprendidos no COCO (80 classes, 118 mil imagens). As camadas iniciais já sabem extrair bordas, texturas e formas, então poucas centenas de imagens bastam para ensinar as classes novas. O COCO tem "tv", mas não sabe se ela está ligada: essa distinção é o que nosso treino adiciona. |
-| **Roboflow** | Anotação das caixas, divisão treino/validação/teste e aumento de dados (flip, brilho, rotação, blur). |
+| **Transferência de aprendizado** | O treino parte dos pesos aprendidos no COCO (80 classes, 118 mil imagens). As camadas iniciais já sabem extrair bordas, texturas e formas, então poucas centenas de imagens bastam para ensinar classes novas. O COCO não tem a classe "lâmpada" nem o estado aceso/apagado: essa distinção é o que nosso treino adiciona. |
+| **Dois modelos no mesmo quadro** | O modelo treinado detecta o estado da iluminação; a YOLO pré-treinada no COCO, restrita à classe *person*, detecta pessoas. Os nomes de classe de qualquer dataset são traduzidos para o vocabulário do SeguWatts por uma função testada (`normalizar_classe`), o que permite trocar de dataset sem mudar a regra. |
+| **Roboflow Universe** | Fonte do dataset público já anotado; download direto no Colab pela API. |
 | **Google Colab (GPU T4)** | Ambiente gratuito com GPU para o treino. |
 | **OpenCV** | Captura da webcam ou do vídeo, desenho das caixas e do painel, gravação do vídeo anotado. |
 | **Regra temporal (Python)** | Converte detecções quadro a quadro em estados do cômodo (ocupado, vazio com aparelho ligado, desperdício), com janela deslizante de 2 s. |
@@ -53,26 +54,28 @@ Treinar um modelo YOLO capaz de identificar, em tempo real, lâmpadas e telas li
 
 ## Metodologia
 
-1. **Coleta.** Cada integrante fotografou a própria casa seguindo o protocolo de `dataset/README.md`: 2 cômodos ou mais, dia e noite, 3 ângulos e todas as combinações de aparelho ligado ou desligado, com e sem pessoa. Total: [preencher] imagens.
-2. **Anotação.** Caixas desenhadas no Roboflow nas 5 classes, com revisão cruzada entre integrantes.
-3. **Divisão e aumento.** 70% treino, 20% validação e 10% teste. Aumento só no treino (3×): flip horizontal, brilho ±25%, exposição ±15%, rotação ±10° e blur leve. Aumentos de cor foram evitados porque alteram a aparência de "aceso" e "apagado".
-4. **Treino.** YOLO11n a partir dos pesos COCO, 80 épocas com parada antecipada (paciência de 20), entrada de 640 px, lote de 16, semente 42 (`notebooks/treino_colab.ipynb`).
+1. **Dataset.** Usamos o dataset público *Light Detection* do Roboflow Universe ([link](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq), versão [preencher], [preencher] imagens, licença [preencher]), com as classes `Lamp On`, `Lamp Off`, `Light Bulb On` e `Light Bulb Off`, traduzidas para `lampada_acesa` e `lampada_apagada`.
+2. **Divisão.** Mantivemos as divisões de treino e validação do dataset. Quando ele não traz conjunto de teste, separamos 20% da validação como teste, com semente fixa, para avaliar em imagens nunca vistas no treino. A contagem por classe está em `resultados/contagem_classes.csv`.
+3. **Detecção de pessoas.** Em vez de anotar pessoas, usamos a YOLO11n pré-treinada no COCO, restrita à classe *person*, que já tem alto desempenho nessa tarefa.
+4. **Treino.** YOLO11n a partir dos pesos COCO, só com as classes de iluminação, 80 épocas com parada antecipada (paciência de 20), entrada de 640 px, lote de 16, semente 42 (`notebooks/treino_colab.ipynb`).
 5. **Avaliação.** Métricas no conjunto de **teste**, nunca visto no treino (`scripts/avaliar.py`), e FPS medido em CPU (`scripts/medir_fps.py`).
-6. **Regra de desperdício.** A cada quadro, o cômodo é considerado com aparelho ligado se lâmpada acesa ou tela ligada aparece em 70% dos quadros dos últimos 2 s, e ocupado se uma pessoa aparece em 30% deles. Os limiares são assimétricos de propósito: um falso "vazio" geraria alerta incômodo ao morador, então basta a pessoa aparecer em parte dos quadros. Depois de 120 s de cômodo vazio com aparelho ligado, um evento é aberto. Ele fecha quando alguém volta ou o aparelho é desligado. A regra tem 13 testes automatizados (`tests/test_regra.py`).
-7. **Integração.** O evento (cômodo, aparelhos, horários, duração, kWh e R$ estimados) vai para um CSV local e para o webhook do n8n. Nenhum quadro é salvo ou transmitido.
+6. **Regra de desperdício.** A cada quadro, o cômodo é considerado com aparelho ligado se lâmpada acesa ou tela ligada aparece em 70% dos quadros dos últimos 2 s, e ocupado se uma pessoa aparece em 30% deles. Os limiares são assimétricos de propósito: um falso "vazio" geraria alerta incômodo ao morador, então basta a pessoa aparecer em parte dos quadros. Depois de 120 s de cômodo vazio com a luz acesa, um evento é aberto. Ele fecha quando alguém volta ou o aparelho é desligado. A regra tem 13 testes automatizados (`tests/test_regra.py`) e a tradução de classes tem 18 (`tests/test_config.py`).
+7. **Demonstração.** Um vídeo gravado no celular, no cômodo de um integrante (pessoa presente → sai → sala vazia → volta), foi processado pelo detector no Colab (célula 10 do notebook), gerando o vídeo anotado e o CSV de eventos.
+8. **Integração.** O evento (cômodo, aparelhos, horários, duração, kWh e R$ estimados) vai para um CSV local e para o webhook do n8n. Nenhum quadro é salvo ou transmitido.
 
 ## Exemplos de resultados
 
 ### Métricas no conjunto de teste
 
-| Classe | Precisão | Recall | mAP@50 | mAP@50-95 |
-|---|---|---|---|---|
-| lampada_acesa | [ ] | [ ] | [ ] | [ ] |
-| lampada_apagada | [ ] | [ ] | [ ] | [ ] |
-| tela_ligada | [ ] | [ ] | [ ] | [ ] |
-| tela_desligada | [ ] | [ ] | [ ] | [ ] |
-| pessoa | [ ] | [ ] | [ ] | [ ] |
-| **Geral** | [ ] | [ ] | [ ] | [ ] |
+| Classe (dataset) | Vira | Precisão | Recall | mAP@50 | mAP@50-95 |
+|---|---|---|---|---|---|
+| Lamp On | lampada_acesa | [ ] | [ ] | [ ] | [ ] |
+| Lamp Off | lampada_apagada | [ ] | [ ] | [ ] | [ ] |
+| Light Bulb On | lampada_acesa | [ ] | [ ] | [ ] | [ ] |
+| Light Bulb Off | lampada_apagada | [ ] | [ ] | [ ] | [ ] |
+| **Geral** | | [ ] | [ ] | [ ] | [ ] |
+
+A detecção de pessoas usa a YOLO11n do COCO sem retreino; o desempenho de referência publicado pela Ultralytics para esse modelo é mAP@50-95 de 39,5 no COCO val2017 (todas as classes).
 
 *(copie de `resultados/metricas_teste.json`)*
 
@@ -98,7 +101,7 @@ Treinar um modelo YOLO capaz de identificar, em tempo real, lâmpadas e telas li
 
 Descreva 3 erros reais encontrados no teste ou no vídeo, com a imagem e a explicação. Os mais prováveis:
 
-1. **TV desligada em cômodo escuro** confundida com fundo (recall baixo de `tela_desligada`).
+1. **Domínio diferente:** fotos do dataset público versus a iluminação e o ângulo da casa do vídeo (compare a confiança das detecções no vídeo com a do teste).
 2. **Reflexo da lâmpada** em vidro ou espelho detectado como `lampada_acesa`.
 3. **Pessoa parcialmente fora do quadro**: a suavização evita o alerta falso, mas atrasa a detecção de presença em até ~0,6 s.
 
@@ -106,9 +109,9 @@ Descreva 3 erros reais encontrados no teste ou no vídeo, com a imagem e a expli
 
 [Ajuste com os números finais.] O modelo treinado reconhece o estado dos aparelhos e a presença de pessoas com mAP@50 de [preencher], rodando a [preencher] FPS em CPU comum, o que permite usar um notebook antigo ou um mini PC como sensor. A regra temporal transforma detecções instáveis quadro a quadro em eventos confiáveis, e a integração com o n8n reaproveita o fluxo de alertas do SeguWatts sem que nenhuma imagem saia da casa.
 
-**Limitações:** o modelo foi treinado com casas de cinco famílias e pode errar em ambientes muito diferentes; ele não mede consumo, então a estimativa em R$ usa potências típicas; e uma câmera dentro de casa exige consentimento explícito de todos os moradores.
+**Limitações:** o modelo foi treinado com um dataset público e pode errar em casas com luminárias muito diferentes; a TV ficou fora desta versão por falta de dataset público com o estado ligada/desligada; ele não mede consumo, então a estimativa em R$ usa potências típicas; e uma câmera dentro de casa exige consentimento explícito de todos os moradores.
 
-**Próximos passos:** ampliar o dataset com casas de outras regiões, adicionar classes (ventilador, ar-condicionado), rodar o modelo em uma ESP32-S3 com câmera, integrando-o ao EcoBot, e cruzar os eventos com o consumo medido pelos sensores de tomada para confirmar o desperdício em kWh reais.
+**Próximos passos:** acrescentar fotos das casas da equipe ao dataset (protocolo em `dataset/README.md`), incluir TV ligada/desligada e ventilador, rodar o modelo em uma ESP32-S3 com câmera, integrando-o ao EcoBot, e cruzar os eventos com o consumo medido pelos sensores de tomada para confirmar o desperdício em kWh reais.
 
 ## Links
 
