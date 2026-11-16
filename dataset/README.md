@@ -23,6 +23,16 @@ Imagens de cômodos reais das casas da equipe, anotadas com 5 classes. As imagen
 
 A ordem dos IDs precisa ser a mesma no Roboflow. Exporte com estas classes e nesta ordem.
 
+## Atalho para o prazo da GS
+
+Com pouco tempo, a combinação que funciona é:
+
+1. **60 fotos por integrante** (300 no total), seguindo a tabela abaixo pela metade.
+2. **Complemento público:** no [Roboflow Universe](https://universe.roboflow.com), busque `light switch on off`, `lamp`, `tv on off` e `television`. Abra um dataset com licença aberta (CC BY 4.0 ou MIT), clique em **Download → Clone images** e mande as imagens para o seu projeto. Depois **renomeie as classes** para as 5 do SeguWatts (ou apague as caixas que não se encaixam).
+3. Registre no relatório quantas imagens são próprias e quantas vieram do Universe, com o link e a licença de cada dataset.
+
+As fotos próprias continuam essenciais: são elas que mostram o modelo funcionando nas casas reais do vídeo.
+
 ## Protocolo de coleta (cerca de 100 fotos por integrante)
 
 Fotografe com o celular na horizontal, do ponto onde a câmera ficaria (canto alto do cômodo, como uma câmera de segurança). Cubra todas as combinações:

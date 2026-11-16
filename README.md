@@ -63,6 +63,10 @@ Exemplo de evento enviado ao n8n:
 
 ## Como rodar
 
+**Sem instalar nada:** todo o fluxo roda no Google Colab. O [notebook](notebooks/treino_colab.ipynb) treina o modelo, mede as métricas e, na célula 10, processa um vídeo gravado no celular com o detector deste repositório, devolvendo o vídeo anotado e o CSV de eventos.
+
+**No computador (webcam ao vivo):**
+
 Requisitos: Python 3.10+ e uma webcam.
 
 ```bash
