@@ -21,20 +21,22 @@ O EcoBot, componente físico do projeto, tentou detectar isso com um sensor de l
 
 ```mermaid
 flowchart LR
-  cam[Webcam] --> yolo[YOLO11n treinado<br/>5 classes]
+  cam[Webcam ou vídeo] --> yolo[YOLO11n treinada<br/>luz acesa/apagada]
+  cam --> coco[YOLO11n COCO<br/>pessoa]
   yolo -->|detecções por quadro| regra[Regra temporal<br/>janela de 2 s]
+  coco --> regra
   regra -->|ocupado / contando / desperdício| hud[Painel na tela]
   regra -->|evento sem imagem| csv[(eventos.csv)]
   regra -->|evento sem imagem| n8n[Webhook n8n<br/>alertas SeguWatts] --> email[E-mail ao morador]
 ```
 
-| Classe | O que é |
+| Detecção | Modelo |
 |---|---|
-| `lampada_acesa` | lâmpada, luminária ou abajur emitindo luz |
-| `lampada_apagada` | o mesmo, desligado |
-| `tela_ligada` | TV ou monitor com imagem |
-| `tela_desligada` | TV ou monitor preto |
-| `pessoa` | pessoa no cômodo |
+| `lampada_acesa` / `lampada_apagada` | **YOLO11n treinada pela equipe** com um dataset público de lâmpadas do Roboflow Universe (`Lamp On`, `Light Bulb On`, `Lamp Off`, `Light Bulb Off`) |
+| `pessoa` | YOLO11n pré-treinada no COCO, rodando no mesmo quadro |
+| `tela_ligada` / `tela_desligada` | suportadas pelo código; ficam como próximo passo, porque não há dataset público com o estado da TV |
+
+Os nomes de classe de qualquer dataset são traduzidos para o vocabulário do SeguWatts por `normalizar_classe()` (`seguwatts_vision/config.py`), com testes em `tests/test_config.py`.
 
 **Regra de desperdício** ([`seguwatts_vision/regra.py`](seguwatts_vision/regra.py)):
 
@@ -62,6 +64,10 @@ Exemplo de evento enviado ao n8n:
 ```
 
 ## Como rodar
+
+**Sem instalar nada:** todo o fluxo roda no Google Colab. O [notebook](notebooks/treino_colab.ipynb) treina o modelo, mede as métricas e, na célula 10, processa um vídeo gravado no celular com o detector deste repositório, devolvendo o vídeo anotado e o CSV de eventos.
+
+**No computador (webcam ao vivo):**
 
 Requisitos: Python 3.10+ e uma webcam.
 
@@ -95,7 +101,7 @@ Configuração por variável de ambiente (ver `.env.example`): `COMODO`, `LIMITE
 
 ## Treino e avaliação
 
-1. Colete e anote o dataset seguindo [dataset/README.md](dataset/README.md).
+1. Crie uma conta gratuita no Roboflow e salve a chave da API nos *Secrets* do Colab como `ROBOFLOW_API_KEY`. O notebook baixa o dataset público já anotado (ou um dataset próprio, ver [dataset/README.md](dataset/README.md)).
 2. Abra [notebooks/treino_colab.ipynb](notebooks/treino_colab.ipynb) no Colab com GPU T4 e rode todas as células. Ele treina a YOLO11n, avalia no conjunto de teste, mede o FPS e baixa um `.zip` com `modelo/` e `resultados/`.
 3. Descompacte o `.zip` na raiz deste repositório.
 
@@ -127,7 +133,7 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-São 17 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento abre uma única vez, fecha quando a pessoa volta ou a luz apaga, ignora quadros isolados e detecções fracas, não depende do FPS, aquecimento ao ligar a câmera) e a saída de eventos (CSV, webhook, falha de rede, recusa de `http` sem TLS).
+São 34 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento abre uma única vez, fecha quando a pessoa volta ou a luz apaga, ignora quadros isolados e detecções fracas, não depende do FPS, aquecimento ao ligar a câmera), a tradução dos nomes de classe dos datasets e a saída de eventos (CSV, webhook, falha de rede, recusa de `http` sem TLS).
 
 ## Privacidade e ética (LGPD)
 

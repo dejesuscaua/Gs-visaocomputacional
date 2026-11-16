@@ -7,11 +7,43 @@ variáveis de ambiente ou da linha de comando. Nada sensível fica no código.
 import os
 from dataclasses import dataclass, field
 
-# Classes treinadas no dataset da equipe (ver dataset/README.md).
+# Classes do SeguWatts. Qualquer nome vindo de um dataset (próprio ou público) é
+# traduzido para estes nomes por normalizar_classe().
 CLASSES_LIGADO = {"lampada_acesa", "tela_ligada"}
 CLASSES_DESLIGADO = {"lampada_apagada", "tela_desligada"}
-# "person" permite testar a detecção de presença com os pesos COCO pré-treinados.
-CLASSES_PRESENCA = {"pessoa", "person"}
+CLASSES_PRESENCA = {"pessoa"}
+CLASSES_SEGUWATTS = CLASSES_LIGADO | CLASSES_DESLIGADO | CLASSES_PRESENCA
+
+_LUZ = {"lamp", "lamps", "bulb", "bulbs", "light", "lights", "led", "luz", "lampada", "lampadas", "luminaria"}
+_TELA = {"tv", "television", "screen", "monitor", "tela"}
+_LIGADO = {"on", "acesa", "aceso", "ligada", "ligado", "lit"}
+_DESLIGADO = {"off", "apagada", "apagado", "desligada", "desligado", "unlit"}
+
+
+def normalizar_classe(nome: str) -> str | None:
+    """Traduz o nome de classe de um dataset para o vocabulário do SeguWatts.
+
+    Exemplos: "Lamp On" e "Light Bulb On" → lampada_acesa; "light_off" → lampada_apagada;
+    "person" (COCO) → pessoa; "tv" do COCO, sem estado → tela_ligada só no modo de teste.
+    Devolve None para classes que não interessam ao SeguWatts (cadeira, garrafa...).
+    """
+    n = nome.strip().lower()
+    if n in CLASSES_SEGUWATTS:
+        return n
+    palavras = set(n.replace("-", " ").replace("_", " ").replace("/", " ").split())
+    if palavras & {"person", "pessoa", "people", "human"}:
+        return "pessoa"
+    if palavras & _LUZ:
+        if palavras & _DESLIGADO:
+            return "lampada_apagada"
+        if palavras & _LIGADO:
+            return "lampada_acesa"
+        return None  # luz sem estado não ajuda a regra
+    if palavras & _TELA:
+        if palavras & _DESLIGADO:
+            return "tela_desligada"
+        return "tela_ligada"
+    return None
 
 # Potência típica usada para estimar o desperdício em kWh e R$.
 # Valores de referência do Procel/Inmetro para aparelhos comuns; ajuste para a casa real.

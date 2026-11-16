@@ -18,7 +18,7 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
-from seguwatts_vision.config import CLASSES_DESLIGADO, CLASSES_LIGADO, CLASSES_PRESENCA, Config
+from seguwatts_vision.config import CLASSES_DESLIGADO, CLASSES_LIGADO, CLASSES_PRESENCA, Config, normalizar_classe
 from seguwatts_vision.eventos import SaidaEventos
 from seguwatts_vision.regra import Deteccao, Estado, MonitorDesperdicio, Resultado
 
@@ -50,24 +50,29 @@ def cor_da_classe(classe: str) -> tuple[int, int, int]:
     return BRANCO
 
 
-# Modo de teste com pesos COCO, antes de existir o modelo da equipe. O COCO reconhece
-# "tv" mas NÃO sabe se ela está ligada: toda TV vira tela_ligada. Serve só para testar
-# câmera, regra, eventos e webhook, nunca como resultado da disciplina.
-MAPA_COCO = {"tv": "tela_ligada", "laptop": "tela_ligada", "person": "pessoa"}
+COCO_PESSOA = 0  # índice da classe "person" no COCO
 
 
-def extrair_deteccoes(resultado, mapa: dict[str, str] | None = None) -> list[Deteccao]:
+def extrair_deteccoes(resultado) -> list[Deteccao]:
+    """Converte a saída da YOLO em detecções com os nomes do SeguWatts.
+
+    O nome de cada classe passa por normalizar_classe(): "Lamp On" vira lampada_acesa,
+    "person" vira pessoa, e classes sem interesse (cadeira, garrafa...) são descartadas.
+    """
     nomes = resultado.names
     caixas = resultado.boxes
     if caixas is None or len(caixas) == 0:
         return []
-    deteccoes = [
-        Deteccao(nomes[int(c)], float(p), tuple(map(float, xyxy)))
-        for c, p, xyxy in zip(caixas.cls.tolist(), caixas.conf.tolist(), caixas.xyxy.tolist())
-    ]
-    if mapa is None:
-        return deteccoes
-    return [Deteccao(mapa[d.classe], d.confianca, d.caixa) for d in deteccoes if d.classe in mapa]
+    deteccoes = []
+    for c, p, xyxy in zip(caixas.cls.tolist(), caixas.conf.tolist(), caixas.xyxy.tolist()):
+        classe = normalizar_classe(nomes[int(c)])
+        if classe is not None:
+            deteccoes.append(Deteccao(classe, float(p), tuple(map(float, xyxy))))
+    return deteccoes
+
+
+def classes_do_modelo(modelo) -> set[str]:
+    return {c for c in (normalizar_classe(n) for n in modelo.names.values()) if c}
 
 
 def texto(img, msg: str, xy: tuple[int, int], escala: float = 0.6, cor=BRANCO, espessura: int = 1) -> None:
@@ -128,9 +133,21 @@ def executar(args: argparse.Namespace) -> None:
     cfg = Config()
     limite = 10.0 if args.demo else (args.limite or cfg.limite_s)
     if args.pre_treinado:
+        # O COCO reconhece "tv" mas não sabe se ela está ligada: toda TV vira tela_ligada.
+        # Serve só para testar câmera, regra, eventos e webhook, não como resultado.
         logging.warning("modo --pre-treinado: pesos COCO, toda TV conta como ligada. Use só para testar a integração.")
     modelo = YOLO("yolo11n.pt" if args.pre_treinado else args.modelo)
-    mapa = MAPA_COCO if args.pre_treinado else None
+    conhecidas = classes_do_modelo(modelo)
+    logging.info("classes do modelo principal: %s", ", ".join(sorted(conhecidas)) or "nenhuma reconhecida")
+    if not conhecidas & (CLASSES_LIGADO | CLASSES_DESLIGADO):
+        logging.warning("o modelo principal não tem classes de aparelho: nenhum desperdício será detectado")
+    # O modelo treinado pela equipe cuida dos aparelhos. Se ele não tiver a classe pessoa
+    # (caso do dataset público de lâmpadas), um segundo modelo, a YOLO pré-treinada no
+    # COCO, detecta só pessoas no mesmo quadro.
+    modelo_pessoas = None
+    if "pessoa" not in conhecidas:
+        modelo_pessoas = YOLO(args.modelo_pessoas)
+        logging.info("pessoas detectadas por %s (COCO)", args.modelo_pessoas)
     monitor = MonitorDesperdicio(args.comodo or cfg.comodo, limite_s=limite, janela_s=cfg.janela_s, confianca_min=cfg.confianca_min)
     saida = SaidaEventos(cfg.arquivo_eventos, cfg.tarifa_rs_kwh, cfg.webhook_url)
 
@@ -151,7 +168,10 @@ def executar(args: argparse.Namespace) -> None:
             agora = inicio_video + cap.get(cv2.CAP_PROP_POS_MSEC) / 1000 if eh_arquivo else time.time()
 
             resultado = modelo(quadro, imgsz=args.imgsz, conf=0.25, verbose=False)[0]
-            deteccoes = extrair_deteccoes(resultado, mapa)
+            deteccoes = extrair_deteccoes(resultado)
+            if modelo_pessoas is not None:
+                pessoas = modelo_pessoas(quadro, imgsz=args.imgsz, conf=0.25, classes=[COCO_PESSOA], verbose=False)[0]
+                deteccoes += extrair_deteccoes(pessoas)
             r = monitor.atualizar(deteccoes, agora)
             if r.evento_aberto:
                 saida.publicar(r.evento_aberto)
@@ -196,7 +216,9 @@ def executar(args: argparse.Namespace) -> None:
 def main() -> None:
     p = argparse.ArgumentParser(description="SeguWatts Vision: aparelho ligado em cômodo vazio.")
     p.add_argument("--fonte", default="0", help="índice da webcam (0, 1...) ou caminho de vídeo")
-    p.add_argument("--modelo", default="modelo/best.pt", help="pesos YOLO treinados")
+    p.add_argument("--modelo", default="modelo/best.pt", help="pesos YOLO treinados (aparelhos)")
+    p.add_argument("--modelo-pessoas", default="yolo11n.pt",
+                   help="pesos COCO para detectar pessoas quando o modelo treinado não tem a classe pessoa")
     p.add_argument("--comodo", default=None, help="nome do cômodo (padrão: variável COMODO ou 'sala')")
     p.add_argument("--limite", type=float, default=None, help="segundos sem ninguém até abrir o evento")
     p.add_argument("--demo", action="store_true", help="limite de 10 s para demonstração")

@@ -107,9 +107,13 @@ def test_finalizar_fecha_evento_aberto():
     assert m.finalizar(8.0) is None
 
 
-def test_pessoa_coco_conta_como_presenca():
+def test_pessoa_vinda_do_coco_conta_como_presenca():
+    """O detector traduz "person" (COCO) para "pessoa" antes de chamar a regra."""
+    from seguwatts_vision.config import normalizar_classe
+
     m = MonitorDesperdicio("sala", limite_s=5)
-    rs = rodar(m, [[LAMPADA, Deteccao("person", 0.9)]] * 80)
+    pessoa_coco = Deteccao(normalizar_classe("person"), 0.9)
+    rs = rodar(m, [[LAMPADA, pessoa_coco]] * 80)
     assert all(r.estado is Estado.OCUPADO for r in rs)
 
 
