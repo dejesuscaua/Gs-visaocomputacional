@@ -6,8 +6,8 @@ Componente **Visão** do SeguWatts (Global Solution 2026.2, FIAP, Engenharia de 
 
 | | |
 |---|---|
-| Relatório da disciplina | [docs/relatorio.md](docs/relatorio.md) (exportar para PDF) |
-| Vídeo de demonstração | `[preencher]` |
+| Relatório da disciplina | [docs/relatorio.md](docs/relatorio.md) |
+| Vídeo de demonstração | https://youtu.be/TOoxmunTYGY |
 | Notebook de treino | [notebooks/treino_colab.ipynb](notebooks/treino_colab.ipynb) |
 | Produto completo | [Vitrine SeguWatts](https://github.com/dejesuscaua/Global-Solution) |
 
@@ -22,7 +22,7 @@ O EcoBot, componente físico do projeto, tentou detectar isso com um sensor de l
 ```mermaid
 flowchart LR
   cam[Webcam ou vídeo] --> yolo[YOLO11n treinada<br/>luz acesa/apagada]
-  cam --> coco[YOLO11n COCO<br/>pessoa]
+  cam --> coco[YOLO11n COCO<br/>pessoa e TV]
   yolo -->|detecções por quadro| regra[Regra temporal<br/>janela de 2 s]
   coco --> regra
   regra -->|ocupado / contando / desperdício| hud[Painel na tela]
@@ -141,7 +141,7 @@ São 41 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento ab
 ## Privacidade e ética (LGPD)
 
 - **Nenhuma imagem é salva ou transmitida.** O processamento acontece no computador da casa, e só o evento (cômodo, aparelhos, horários, estimativa) sai.
-- O dataset só tem pessoas que autorizaram, e as fotos não são publicadas (ficam no Roboflow, privado).
+- O dataset de treino é público (CC BY 4.0) e só tem lâmpadas, sem pessoas. A demonstração foi gravada na casa de um integrante, só com quem autorizou.
 - Câmera dentro de casa exige consentimento de todos os moradores. O SeguWatts Vision é opcional e pode ser desligado a qualquer momento.
 - A decisão final é humana: o evento sugere uma verificação, não desliga nada sozinho.
 
@@ -159,7 +159,6 @@ scripts/avaliar.py             métricas no conjunto de teste
 scripts/medir_fps.py           FPS e latência em CPU
 dataset/                       protocolo de coleta e anotação, data.yaml de referência
 docs/relatorio.md              documento da disciplina
-docs/roteiro_video.md          roteiro do vídeo
 tests/                         testes da regra e dos eventos
 ```
 
