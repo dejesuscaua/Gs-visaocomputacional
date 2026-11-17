@@ -18,7 +18,7 @@
 
 *(até 250 palavras; esta versão tem cerca de 220 sem os números)*
 
-O SeguWatts é um assistente de uso consciente de energia para famílias de renda baixa e média no estado de São Paulo. A conta de luz mostra só o total do mês e não revela desperdícios do dia a dia, como uma luz ou uma TV que ficam ligadas em um cômodo vazio. O sensor de luminosidade do protótipo físico do projeto (EcoBot) percebe que há luz, mas não distingue luz natural de lâmpada nem sabe se há alguém no cômodo. Este trabalho resolve essa limitação com visão computacional. Treinamos uma rede YOLO11 nano, por transferência de aprendizado a partir dos pesos COCO, com um dataset público de 695 imagens anotadas de lâmpadas acesas e apagadas, e combinamos esse modelo com a YOLO pré-treinada no COCO para detectar pessoas no mesmo quadro. Sobre as detecções de cada quadro, uma regra com suavização temporal identifica quando há aparelho ligado sem ninguém por mais de dois minutos e gera um evento de possível desperdício de iluminação, com estimativa de energia e custo. O evento, sem nenhuma imagem, é enviado ao fluxo de alertas do SeguWatts no n8n. No conjunto de teste, o modelo atingiu mAP@50 de 0,783 e mAP@50-95 de 0,529 (0,896 e 0,924 de mAP@50 para luminária acesa e apagada), e o detector rodou a [preencher] quadros por segundo em CPU comum. O resultado mostra que é possível, com hardware acessível, transformar uma câmera em um sensor de desperdício que respeita a privacidade do morador.
+O SeguWatts é um assistente de uso consciente de energia para famílias de renda baixa e média no estado de São Paulo. A conta de luz mostra só o total do mês e não revela desperdícios do dia a dia, como uma luz ou uma TV que ficam ligadas em um cômodo vazio. O sensor de luminosidade do protótipo físico do projeto (EcoBot) percebe que há luz, mas não distingue luz natural de lâmpada nem sabe se há alguém no cômodo. Este trabalho resolve essa limitação com visão computacional. Treinamos uma rede YOLO11 nano, por transferência de aprendizado a partir dos pesos COCO, com um dataset público de 695 imagens anotadas de lâmpadas acesas e apagadas, e combinamos esse modelo com a YOLO pré-treinada no COCO para detectar pessoas no mesmo quadro. Sobre as detecções de cada quadro, uma regra com suavização temporal identifica quando há aparelho ligado sem ninguém por mais de dois minutos e gera um evento de possível desperdício de iluminação, com estimativa de energia e custo. O evento, sem nenhuma imagem, é enviado ao fluxo de alertas do SeguWatts no n8n. No conjunto de teste, o modelo atingiu mAP@50 de 0,783 e mAP@50-95 de 0,529 (0,896 e 0,924 de mAP@50 para luminária acesa e apagada), e o modelo rodou a 9,9 quadros por segundo em CPU, sem GPU (12,2 com entrada de 480 px). O resultado mostra que é possível, com hardware acessível, transformar uma câmera em um sensor de desperdício que respeita a privacidade do morador.
 
 ## Introdução
 
@@ -91,13 +91,12 @@ A detecção de pessoas usa a YOLO11n do COCO sem retreino; o desempenho de refe
 
 ### Desempenho em tempo real (CPU)
 
-| Entrada | FPS médio | Latência p50 | Latência p95 |
-|---|---|---|---|
-| 640 px | [ ] | [ ] ms | [ ] ms |
-| 480 px | [ ] | [ ] ms | [ ] ms |
-| 320 px | [ ] | [ ] ms | [ ] ms |
+| Entrada | FPS médio | Latência média por quadro |
+|---|---|---|
+| 640 px | 9,9 | ~101 ms |
+| 480 px | 12,2 | ~82 ms |
 
-*(copie de `resultados/fps.json`; informe o processador usado)*
+Medido na CPU do Google Colab (sem GPU), com `device="cpu"`, sobre as imagens de teste (célula 8 do notebook). Na GPU T4, a inferência levou 8 ms por imagem. Na demonstração, o detector roda dois modelos por quadro (iluminação e pessoas), então o FPS efetivo em CPU fica abaixo desses valores. Isso não afeta a regra, que decide sobre janelas de 2 s e não depende de uma taxa fixa de quadros.
 
 ### Erros analisados
 
@@ -112,7 +111,7 @@ Erros observados no teste e no vídeo (inclua a imagem de cada um a partir de `r
 
 ## Conclusão
 
-O modelo treinado reconhece o estado da iluminação com mAP@50 de 0,783 no conjunto de teste (0,896 e 0,924 para luminária acesa e apagada) e, combinado à detecção de pessoas do COCO, rodando a [preencher] FPS em CPU comum, o que permite usar um notebook antigo ou um mini PC como sensor. A regra temporal transforma detecções instáveis quadro a quadro em eventos confiáveis, e a integração com o n8n reaproveita o fluxo de alertas do SeguWatts sem que nenhuma imagem saia da casa.
+O modelo treinado reconhece o estado da iluminação com mAP@50 de 0,783 no conjunto de teste (0,896 e 0,924 para luminária acesa e apagada) e, combinado à detecção de pessoas do COCO, rodando a cerca de 10 FPS em CPU, sem GPU, o que permite usar um notebook antigo ou um mini PC como sensor. A regra temporal transforma detecções instáveis quadro a quadro em eventos confiáveis, e a integração com o n8n reaproveita o fluxo de alertas do SeguWatts sem que nenhuma imagem saia da casa.
 
 **Limitações:** o modelo foi treinado com um dataset público e pode errar em casas com luminárias muito diferentes; a TV ficou fora desta versão por falta de dataset público com o estado ligada/desligada; ele não mede consumo, então a estimativa em R$ usa potências típicas; e uma câmera dentro de casa exige consentimento explícito de todos os moradores.
 

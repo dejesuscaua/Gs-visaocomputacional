@@ -121,7 +121,7 @@ python scripts/medir_fps.py --fonte 0                          # resultados/fps.
 | Precisão | 0,706 |
 | Recall | 0,709 |
 | mAP@50 luminária acesa / apagada | 0,896 / 0,924 |
-| FPS (640 px) | `[preencher com a célula 8]` |
+| FPS em CPU, sem GPU (640 / 480 px) | 9,9 / 12,2 |
 
 Dataset: [Light Detection v3](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq/dataset/3) (Roboflow Universe, 695 imagens, CC BY 4.0). Treino: YOLO11n a partir do COCO, parada antecipada na época 69 (melhor na 49), ~10 min numa T4.
 
