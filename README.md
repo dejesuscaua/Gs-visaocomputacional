@@ -6,8 +6,8 @@ Componente **Visão** do SeguWatts (Global Solution 2026.2, FIAP, Engenharia de 
 
 | | |
 |---|---|
-| Relatório da disciplina | [docs/relatorio.md](docs/relatorio.md) (exportar para PDF) |
-| Vídeo de demonstração | `[preencher]` |
+| Relatório da disciplina | [PDF](docs/SeguWatts-Vision-AppliedComputerVision.pdf) · [Markdown](docs/relatorio.md) |
+| Vídeo de demonstração | https://youtu.be/TOoxmunTYGY |
 | Notebook de treino | [notebooks/treino_colab.ipynb](notebooks/treino_colab.ipynb) |
 | Produto completo | [Vitrine SeguWatts](https://github.com/dejesuscaua/Global-Solution) |
 
@@ -22,7 +22,7 @@ O EcoBot, componente físico do projeto, tentou detectar isso com um sensor de l
 ```mermaid
 flowchart LR
   cam[Webcam ou vídeo] --> yolo[YOLO11n treinada<br/>luz acesa/apagada]
-  cam --> coco[YOLO11n COCO<br/>pessoa]
+  cam --> coco[YOLO11n COCO<br/>pessoa e TV]
   yolo -->|detecções por quadro| regra[Regra temporal<br/>janela de 2 s]
   coco --> regra
   regra -->|ocupado / contando / desperdício| hud[Painel na tela]
@@ -34,7 +34,7 @@ flowchart LR
 |---|---|
 | `lampada_acesa` / `lampada_apagada` | **YOLO11n treinada pela equipe** com um dataset público de lâmpadas do Roboflow Universe (`Lamp On`, `Light Bulb On`, `Lamp Off`, `Light Bulb Off`) |
 | `pessoa` | YOLO11n pré-treinada no COCO, rodando no mesmo quadro |
-| `tela_ligada` / `tela_desligada` | suportadas pelo código; ficam como próximo passo, porque não há dataset público com o estado da TV |
+| `tela_ligada` / `tela_desligada` | a YOLO COCO acha a TV; o estado vem do **brilho da tela** (`estado_tela()` em `config.py`): tela bem mais clara que o quadro, ou com imagem, conta como ligada |
 
 Os nomes de classe de qualquer dataset são traduzidos para o vocabulário do SeguWatts por `normalizar_classe()` (`seguwatts_vision/config.py`), com testes em `tests/test_config.py`.
 
@@ -65,7 +65,7 @@ Exemplo de evento enviado ao n8n:
 
 ## Como rodar
 
-**Sem instalar nada:** todo o fluxo roda no Google Colab. O [notebook](notebooks/treino_colab.ipynb) treina o modelo, mede as métricas e, na célula 10, processa um vídeo gravado no celular com o detector deste repositório, devolvendo o vídeo anotado e o CSV de eventos.
+**Sem instalar nada:** todo o fluxo roda no Google Colab. O [notebook](notebooks/treino_colab.ipynb) treina o modelo, mede as métricas e, na célula 10, processa um vídeo gravado no celular com o detector deste repositório, devolvendo o vídeo anotado e o CSV de eventos. A célula 11 roda **ao vivo com a webcam do navegador**: o Colab captura os quadros por JavaScript e `seguwatts_vision/ao_vivo.py` aplica os modelos e a regra a cada quadro, mostrando o painel e os eventos em tempo real.
 
 **No computador (webcam ao vivo):**
 
@@ -85,7 +85,7 @@ pip install -r requirements.txt
 python -m seguwatts_vision.detector --pre-treinado --demo
 ```
 
-Nesse modo o COCO reconhece pessoa e TV, mas não sabe se a TV está ligada: toda TV conta como ligada. Serve só para testar a integração.
+Nesse modo o COCO reconhece pessoa e TV (estado pelo brilho da tela), mas não lâmpadas. Serve para testar a integração.
 
 **Com o modelo da equipe** (`modelo/best.pt`, gerado pelo notebook):
 
@@ -114,13 +114,16 @@ python scripts/medir_fps.py --fonte 0                          # resultados/fps.
 
 ## Resultados
 
-| Métrica (conjunto de teste) | Valor |
+| Métrica (conjunto de teste, 34 imagens) | Valor |
 |---|---|
-| mAP@50 | `[preencher]` |
-| mAP@50-95 | `[preencher]` |
-| Precisão | `[preencher]` |
-| Recall | `[preencher]` |
-| FPS em CPU (640 px) | `[preencher]` |
+| mAP@50 | **0,783** |
+| mAP@50-95 | **0,529** |
+| Precisão | 0,706 |
+| Recall | 0,709 |
+| mAP@50 luminária acesa / apagada | 0,896 / 0,924 |
+| FPS em CPU, sem GPU (640 / 480 px) | 9,9 / 12,2 |
+
+Dataset: [Light Detection v3](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq/dataset/3) (Roboflow Universe, 695 imagens, CC BY 4.0). Treino: YOLO11n a partir do COCO, parada antecipada na época 69 (melhor na 49), ~10 min numa T4.
 
 Figuras em `resultados/`: curvas de treino, matriz de confusão, curva precisão × recall e exemplos de detecção.
 
@@ -133,12 +136,12 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-São 34 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento abre uma única vez, fecha quando a pessoa volta ou a luz apaga, ignora quadros isolados e detecções fracas, não depende do FPS, aquecimento ao ligar a câmera), a tradução dos nomes de classe dos datasets e a saída de eventos (CSV, webhook, falha de rede, recusa de `http` sem TLS).
+São 41 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento abre uma única vez, fecha quando a pessoa volta ou a luz apaga, ignora quadros isolados e detecções fracas, não depende do FPS, aquecimento ao ligar a câmera), a tradução dos nomes de classe dos datasets, o estado da TV pelo brilho e a saída de eventos (CSV, webhook, falha de rede, recusa de `http` sem TLS).
 
 ## Privacidade e ética (LGPD)
 
 - **Nenhuma imagem é salva ou transmitida.** O processamento acontece no computador da casa, e só o evento (cômodo, aparelhos, horários, estimativa) sai.
-- O dataset só tem pessoas que autorizaram, e as fotos não são publicadas (ficam no Roboflow, privado).
+- O dataset de treino é público (CC BY 4.0) e só tem lâmpadas, sem pessoas. A demonstração foi gravada na casa de um integrante, só com quem autorizou.
 - Câmera dentro de casa exige consentimento de todos os moradores. O SeguWatts Vision é opcional e pode ser desligado a qualquer momento.
 - A decisão final é humana: o evento sugere uma verificação, não desliga nada sozinho.
 
@@ -147,6 +150,7 @@ São 34 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento ab
 ```text
 seguwatts_vision/
   detector.py       tempo real: câmera ou vídeo, YOLO, painel e gravação
+  ao_vivo.py        processamento quadro a quadro (webcam do navegador no Colab)
   regra.py          regra de desperdício com suavização temporal (sem dependência de câmera)
   eventos.py        CSV local e webhook do n8n
   config.py         classes, potências e configuração por ambiente
@@ -154,8 +158,7 @@ notebooks/treino_colab.ipynb   treino, avaliação, FPS e exportação
 scripts/avaliar.py             métricas no conjunto de teste
 scripts/medir_fps.py           FPS e latência em CPU
 dataset/                       protocolo de coleta e anotação, data.yaml de referência
-docs/relatorio.md              documento da disciplina
-docs/roteiro_video.md          roteiro do vídeo
+docs/relatorio.md              documento da disciplina (PDF na mesma pasta)
 tests/                         testes da regra e dos eventos
 ```
 

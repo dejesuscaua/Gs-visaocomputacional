@@ -1,0 +1,32 @@
+{
+  "mAP50": 0.783,
+  "mAP50_95": 0.529,
+  "precisao": 0.706,
+  "recall": 0.709,
+  "por_classe": {
+    "Lamp Off": {
+      "precisao": 0.878,
+      "recall": 0.889,
+      "mAP50": 0.924,
+      "mAP50_95": 0.631
+    },
+    "Lamp On": {
+      "precisao": 0.628,
+      "recall": 0.846,
+      "mAP50": 0.896,
+      "mAP50_95": 0.587
+    },
+    "Light Bulb Off": {
+      "precisao": 0.567,
+      "recall": 0.375,
+      "mAP50": 0.524,
+      "mAP50_95": 0.319
+    },
+    "Light Bulb On": {
+      "precisao": 0.75,
+      "recall": 0.727,
+      "mAP50": 0.787,
+      "mAP50_95": 0.58
+    }
+  }
+}

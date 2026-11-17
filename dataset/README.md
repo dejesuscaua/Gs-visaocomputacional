@@ -1,15 +1,6 @@
 # Dataset SeguWatts Vision
 
-A entrega usa um dataset público do Roboflow Universe, baixado pelo notebook (seção abaixo). As seções seguintes descrevem como montar um dataset próprio com fotos das casas da equipe, para uma versão 2 mais fiel ao ambiente real. As imagens **não** ficam neste repositório (tamanho e privacidade).
-
-| Item | Valor |
-|---|---|
-| Projeto no Roboflow | `<preencher: link do projeto>` |
-| Versão usada no treino | `<preencher>` |
-| Total de imagens (antes do aumento) | `<preencher>` |
-| Divisão | 70% treino, 20% validação, 10% teste |
-| Formato exportado | YOLOv8 / YOLO11 (txt por imagem + `data.yaml`) |
-| Licença | Imagens próprias da equipe, uso acadêmico. Imagens do Open Images, se usadas, sob CC BY 2.0 com atribuição em `fontes.csv` |
+A entrega usa um dataset público do Roboflow Universe, baixado pelo notebook (seção abaixo). As outras seções são o nosso plano para a versão 2: um dataset próprio, com fotos das casas da equipe, mais fiel ao ambiente real. As imagens **não** ficam neste repositório (tamanho e privacidade).
 
 ## Classes
 
@@ -32,19 +23,11 @@ O treino usa um dataset público já anotado do Roboflow Universe, baixado pelo 
 | Dataset | [Light Detection · infocomm-thingy](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq) |
 | Classes originais | `Lamp On`, `Lamp Off`, `Light Bulb On`, `Light Bulb Off` |
 | Tradução | `*On` → `lampada_acesa`; `*Off` → `lampada_apagada` (`normalizar_classe`) |
-| Versão, número de imagens e licença | `[preencher a partir da célula 2 do notebook]` |
+| Versão | 3 (exportada em 29/08/2024) |
+| Imagens | 695 (treino 603, validação 58, teste 34) |
+| Licença | CC BY 4.0 (uso permitido com atribuição) |
 
 Pessoas vêm da YOLO pré-treinada no COCO; por isso o dataset não precisa da classe `pessoa`. As fotos próprias abaixo continuam válidas para melhorar o modelo nas casas reais (versão 2).
-
-## Atalho para o prazo da GS
-
-Com pouco tempo, a combinação que funciona é:
-
-1. **60 fotos por integrante** (300 no total), seguindo a tabela abaixo pela metade.
-2. **Complemento público:** no [Roboflow Universe](https://universe.roboflow.com), busque `light switch on off`, `lamp`, `tv on off` e `television`. Abra um dataset com licença aberta (CC BY 4.0 ou MIT), clique em **Download → Clone images** e mande as imagens para o seu projeto. Depois **renomeie as classes** para as 5 do SeguWatts (ou apague as caixas que não se encaixam).
-3. Registre no relatório quantas imagens são próprias e quantas vieram do Universe, com o link e a licença de cada dataset.
-
-As fotos próprias continuam essenciais: são elas que mostram o modelo funcionando nas casas reais do vídeo.
 
 ## Protocolo de coleta (cerca de 100 fotos por integrante)
 
