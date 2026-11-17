@@ -103,10 +103,12 @@ A detecção de pessoas usa a YOLO11n do COCO sem retreino; o desempenho de refe
 
 Erros observados no teste e no vídeo (inclua a imagem de cada um a partir de `resultados/` e do vídeo anotado):
 
-1. **Lâmpada solta apagada não detectada:** a classe *Light Bulb Off* tem recall de 0,375: o modelo deixa passar lâmpadas apagadas pequenas, sem brilho para se destacarem do fundo. Para o SeguWatts o impacto é baixo, porque o alerta depende de luz **acesa**.
-2. **Domínio diferente:** fotos do dataset público versus a iluminação e o ângulo da casa do vídeo (compare a confiança das detecções no vídeo com a do teste).
-3. **Reflexo da lâmpada** em vidro ou espelho detectado como `lampada_acesa`.
-4. **Pessoa parcialmente fora do quadro**: a suavização evita o alerta falso, mas atrasa a detecção de presença em até ~0,6 s.
+1. **Lâmpada solta apagada confundida com acesa** (`resultados/matriz_confusao.png`): 37% das lâmpadas *Light Bulb Off* foram classificadas como *Light Bulb On*, e outros 25% não foram detectadas. É o erro mais relevante para o SeguWatts, porque uma lâmpada apagada lida como acesa pode gerar um **alerta falso**. Duas defesas já existentes reduzem o efeito: a regra exige luz acesa em 70% dos quadros de uma janela de 2 s e confiança mínima de 0,5. A correção definitiva é acrescentar ao treino fotos de lâmpadas apagadas em ambientes reais.
+2. **Falsos positivos no fundo:** a coluna *background* da matriz mostra como se distribuem as caixas previstas onde não havia lâmpada: 33% viraram *Light Bulb Off*, 30% *Lamp On*, 22% *Lamp Off* e 15% *Light Bulb On*. São tipicamente reflexos e pontos claros. Pelo mesmo motivo, a suavização temporal evita que um reflexo isolado abra um evento.
+3. **Luminárias estão firmes:** *Lamp Off* e *Lamp On* acertam 89% e 90% na diagonal da matriz, com confusão de cerca de 10% entre si. É o caso mais comum em uma casa (luminária de teto ou abajur).
+4. **Domínio diferente:** fotos do dataset público versus a iluminação e o ângulo da casa do vídeo (compare a confiança das detecções no vídeo com a do teste).
+5. **Reflexo da lâmpada** em vidro ou espelho detectado como `lampada_acesa`.
+6. **Pessoa parcialmente fora do quadro**: a suavização evita o alerta falso, mas atrasa a detecção de presença em até ~0,6 s.
 
 ## Conclusão
 
