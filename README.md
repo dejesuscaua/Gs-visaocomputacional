@@ -65,7 +65,7 @@ Exemplo de evento enviado ao n8n:
 
 ## Como rodar
 
-**Sem instalar nada:** todo o fluxo roda no Google Colab. O [notebook](notebooks/treino_colab.ipynb) treina o modelo, mede as métricas e, na célula 10, processa um vídeo gravado no celular com o detector deste repositório, devolvendo o vídeo anotado e o CSV de eventos.
+**Sem instalar nada:** todo o fluxo roda no Google Colab. O [notebook](notebooks/treino_colab.ipynb) treina o modelo, mede as métricas e, na célula 10, processa um vídeo gravado no celular com o detector deste repositório, devolvendo o vídeo anotado e o CSV de eventos. A célula 11 roda **ao vivo com a webcam do navegador**: o Colab captura os quadros por JavaScript e `seguwatts_vision/ao_vivo.py` aplica os modelos e a regra a cada quadro, mostrando o painel e os eventos em tempo real.
 
 **No computador (webcam ao vivo):**
 
@@ -150,6 +150,7 @@ São 34 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento ab
 ```text
 seguwatts_vision/
   detector.py       tempo real: câmera ou vídeo, YOLO, painel e gravação
+  ao_vivo.py        processamento quadro a quadro (webcam do navegador no Colab)
   regra.py          regra de desperdício com suavização temporal (sem dependência de câmera)
   eventos.py        CSV local e webhook do n8n
   config.py         classes, potências e configuração por ambiente
