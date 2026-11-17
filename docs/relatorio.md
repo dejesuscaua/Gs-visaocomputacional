@@ -89,7 +89,7 @@ A detecção de pessoas usa a YOLO11n do COCO sem retreino; o desempenho de refe
 | 640 px | 9,9 | ~101 ms |
 | 480 px | 12,2 | ~82 ms |
 
-Medido na CPU do Google Colab (sem GPU), com `device="cpu"`, sobre as imagens de teste (célula 8 do notebook). Na GPU T4, a inferência levou 8 ms por imagem. Na demonstração, o detector roda dois modelos por quadro (iluminação e pessoas), então o FPS efetivo em CPU fica abaixo desses valores. Isso não afeta a regra, que decide sobre janelas de 2 s e não depende de uma taxa fixa de quadros.
+Medido na CPU do Google Colab (sem GPU), com `device="cpu"`, sobre as imagens de teste (célula 8 do notebook). Na GPU T4, a inferência levou 8 ms por imagem. Na demonstração, o detector roda dois modelos por quadro (iluminação; pessoas e TVs), então o FPS efetivo em CPU fica abaixo desses valores. Isso não afeta a regra, que decide sobre janelas de 2 s e não depende de uma taxa fixa de quadros.
 
 ### Erros analisados
 

@@ -6,7 +6,7 @@ Componente **Visão** do SeguWatts (Global Solution 2026.2, FIAP, Engenharia de 
 
 | | |
 |---|---|
-| Relatório da disciplina | [docs/relatorio.md](docs/relatorio.md) |
+| Relatório da disciplina | [PDF](docs/SeguWatts-Vision-AppliedComputerVision.pdf) · [Markdown](docs/relatorio.md) |
 | Vídeo de demonstração | https://youtu.be/TOoxmunTYGY |
 | Notebook de treino | [notebooks/treino_colab.ipynb](notebooks/treino_colab.ipynb) |
 | Produto completo | [Vitrine SeguWatts](https://github.com/dejesuscaua/Global-Solution) |
@@ -158,7 +158,7 @@ notebooks/treino_colab.ipynb   treino, avaliação, FPS e exportação
 scripts/avaliar.py             métricas no conjunto de teste
 scripts/medir_fps.py           FPS e latência em CPU
 dataset/                       protocolo de coleta e anotação, data.yaml de referência
-docs/relatorio.md              documento da disciplina
+docs/relatorio.md              documento da disciplina (PDF na mesma pasta)
 tests/                         testes da regra e dos eventos
 ```
 
