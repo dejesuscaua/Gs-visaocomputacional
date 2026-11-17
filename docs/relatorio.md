@@ -18,7 +18,7 @@
 
 *(até 250 palavras; esta versão tem cerca de 220 sem os números)*
 
-O SeguWatts é um assistente de uso consciente de energia para famílias de renda baixa e média no estado de São Paulo. A conta de luz mostra só o total do mês e não revela desperdícios do dia a dia, como uma luz ou uma TV que ficam ligadas em um cômodo vazio. O sensor de luminosidade do protótipo físico do projeto (EcoBot) percebe que há luz, mas não distingue luz natural de lâmpada nem sabe se há alguém no cômodo. Este trabalho resolve essa limitação com visão computacional. Treinamos uma rede YOLO11 nano, por transferência de aprendizado a partir dos pesos COCO, com um dataset público de [preencher] imagens anotadas de lâmpadas acesas e apagadas, e combinamos esse modelo com a YOLO pré-treinada no COCO para detectar pessoas no mesmo quadro. Sobre as detecções de cada quadro, uma regra com suavização temporal identifica quando há aparelho ligado sem ninguém por mais de dois minutos e gera um evento de possível desperdício de iluminação, com estimativa de energia e custo. O evento, sem nenhuma imagem, é enviado ao fluxo de alertas do SeguWatts no n8n. No conjunto de teste, o modelo atingiu mAP@50 de [preencher] e mAP@50-95 de [preencher], e o detector rodou a [preencher] quadros por segundo em CPU comum. O resultado mostra que é possível, com hardware acessível, transformar uma câmera em um sensor de desperdício que respeita a privacidade do morador.
+O SeguWatts é um assistente de uso consciente de energia para famílias de renda baixa e média no estado de São Paulo. A conta de luz mostra só o total do mês e não revela desperdícios do dia a dia, como uma luz ou uma TV que ficam ligadas em um cômodo vazio. O sensor de luminosidade do protótipo físico do projeto (EcoBot) percebe que há luz, mas não distingue luz natural de lâmpada nem sabe se há alguém no cômodo. Este trabalho resolve essa limitação com visão computacional. Treinamos uma rede YOLO11 nano, por transferência de aprendizado a partir dos pesos COCO, com um dataset público de 695 imagens anotadas de lâmpadas acesas e apagadas, e combinamos esse modelo com a YOLO pré-treinada no COCO para detectar pessoas no mesmo quadro. Sobre as detecções de cada quadro, uma regra com suavização temporal identifica quando há aparelho ligado sem ninguém por mais de dois minutos e gera um evento de possível desperdício de iluminação, com estimativa de energia e custo. O evento, sem nenhuma imagem, é enviado ao fluxo de alertas do SeguWatts no n8n. No conjunto de teste, o modelo atingiu mAP@50 de 0,783 e mAP@50-95 de 0,529 (0,896 e 0,924 de mAP@50 para luminária acesa e apagada), e o detector rodou a [preencher] quadros por segundo em CPU comum. O resultado mostra que é possível, com hardware acessível, transformar uma câmera em um sensor de desperdício que respeita a privacidade do morador.
 
 ## Introdução
 
@@ -54,10 +54,10 @@ Treinar um modelo YOLO que reconheça, em tempo real, lâmpadas acesas e apagada
 
 ## Metodologia
 
-1. **Dataset.** Usamos o dataset público *Light Detection* do Roboflow Universe ([link](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq), versão [preencher], [preencher] imagens, licença [preencher]), com as classes `Lamp On`, `Lamp Off`, `Light Bulb On` e `Light Bulb Off`, traduzidas para `lampada_acesa` e `lampada_apagada`.
-2. **Divisão.** Mantivemos as divisões de treino e validação do dataset. Quando ele não traz conjunto de teste, separamos 20% da validação como teste, com semente fixa, para avaliar em imagens nunca vistas no treino. A contagem por classe está em `resultados/contagem_classes.csv`.
+1. **Dataset.** Usamos o dataset público *Light Detection* do Roboflow Universe ([link](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq), versão 3, 695 imagens, licença CC BY 4.0), com as classes `Lamp On`, `Lamp Off`, `Light Bulb On` e `Light Bulb Off`, traduzidas para `lampada_acesa` e `lampada_apagada`.
+2. **Divisão.** Mantivemos as divisões de treino e validação do dataset. Quando ele não traz conjunto de teste, separamos 20% da validação como teste, com semente fixa, para avaliar em imagens nunca vistas no treino. Treino: 603 imagens; validação: 58; teste: 34. Caixas no treino: Lamp Off 186, Lamp On 240, Light Bulb Off 132, Light Bulb On 141 (`resultados/contagem_classes.csv`).
 3. **Detecção de pessoas.** Em vez de anotar pessoas, usamos a YOLO11n pré-treinada no COCO, restrita à classe *person*, que já tem alto desempenho nessa tarefa.
-4. **Treino.** YOLO11n a partir dos pesos COCO, só com as classes de iluminação, 80 épocas com parada antecipada (paciência de 20), entrada de 640 px, lote de 16, semente 42 (`notebooks/treino_colab.ipynb`).
+4. **Treino.** YOLO11n a partir dos pesos COCO, só com as classes de iluminação, até 80 épocas com parada antecipada (paciência de 20): o treino parou na época 69, com o melhor modelo na época 49, em cerca de 10 minutos numa GPU T4, entrada de 640 px, lote de 16, semente 42 (`notebooks/treino_colab.ipynb`).
 5. **Avaliação.** Métricas no conjunto de **teste**, nunca visto no treino (`scripts/avaliar.py`), e FPS medido em CPU (`scripts/medir_fps.py`).
 6. **Regra de desperdício.** A cada quadro, o cômodo é considerado com aparelho ligado se lâmpada acesa ou tela ligada aparece em 70% dos quadros dos últimos 2 s, e ocupado se uma pessoa aparece em 30% deles. Os limiares são assimétricos de propósito: um falso "vazio" geraria alerta incômodo ao morador, então basta a pessoa aparecer em parte dos quadros. Depois de 120 s de cômodo vazio com a luz acesa, um evento é aberto. Ele fecha quando alguém volta ou o aparelho é desligado. A regra tem 13 testes automatizados (`tests/test_regra.py`) e a tradução de classes tem 18 (`tests/test_config.py`).
 7. **Demonstração.** Um vídeo gravado no celular, no cômodo de um integrante (pessoa presente → sai → sala vazia → volta), foi processado pelo detector no Colab (célula 10 do notebook), gerando o vídeo anotado e o CSV de eventos.
@@ -69,11 +69,13 @@ Treinar um modelo YOLO que reconheça, em tempo real, lâmpadas acesas e apagada
 
 | Classe (dataset) | Vira | Precisão | Recall | mAP@50 | mAP@50-95 |
 |---|---|---|---|---|---|
-| Lamp On | lampada_acesa | [ ] | [ ] | [ ] | [ ] |
-| Lamp Off | lampada_apagada | [ ] | [ ] | [ ] | [ ] |
-| Light Bulb On | lampada_acesa | [ ] | [ ] | [ ] | [ ] |
-| Light Bulb Off | lampada_apagada | [ ] | [ ] | [ ] | [ ] |
-| **Geral** | | [ ] | [ ] | [ ] | [ ] |
+| Lamp On | lampada_acesa | 0,628 | 0,846 | 0,896 | 0,587 |
+| Lamp Off | lampada_apagada | 0,878 | 0,889 | 0,924 | 0,631 |
+| Light Bulb On | lampada_acesa | 0,750 | 0,727 | 0,787 | 0,580 |
+| Light Bulb Off | lampada_apagada | 0,567 | 0,375 | 0,524 | 0,319 |
+| **Geral** | | **0,706** | **0,709** | **0,783** | **0,529** |
+
+Na validação (58 imagens), o melhor modelo teve mAP@50 de 0,744 e mAP@50-95 de 0,510. As luminárias (acesa e apagada), que são o caso típico de um cômodo, ficaram acima de 0,89 de mAP@50. O ponto fraco é a lâmpada solta apagada (*Light Bulb Off*: recall de 0,375), objeto pequeno e sem brilho, com apenas 8 instâncias no teste; por isso o resultado dessa classe tem alta variância.
 
 A detecção de pessoas usa a YOLO11n do COCO sem retreino; o desempenho de referência publicado pela Ultralytics para esse modelo é mAP@50-95 de 39,5 no COCO val2017 (todas as classes).
 
@@ -99,15 +101,16 @@ A detecção de pessoas usa a YOLO11n do COCO sem retreino; o desempenho de refe
 
 ### Erros analisados
 
-Descreva 3 erros reais encontrados no teste ou no vídeo, com a imagem e a explicação. Os mais prováveis:
+Erros observados no teste e no vídeo (inclua a imagem de cada um a partir de `resultados/` e do vídeo anotado):
 
-1. **Domínio diferente:** fotos do dataset público versus a iluminação e o ângulo da casa do vídeo (compare a confiança das detecções no vídeo com a do teste).
-2. **Reflexo da lâmpada** em vidro ou espelho detectado como `lampada_acesa`.
-3. **Pessoa parcialmente fora do quadro**: a suavização evita o alerta falso, mas atrasa a detecção de presença em até ~0,6 s.
+1. **Lâmpada solta apagada não detectada:** a classe *Light Bulb Off* tem recall de 0,375: o modelo deixa passar lâmpadas apagadas pequenas, sem brilho para se destacarem do fundo. Para o SeguWatts o impacto é baixo, porque o alerta depende de luz **acesa**.
+2. **Domínio diferente:** fotos do dataset público versus a iluminação e o ângulo da casa do vídeo (compare a confiança das detecções no vídeo com a do teste).
+3. **Reflexo da lâmpada** em vidro ou espelho detectado como `lampada_acesa`.
+4. **Pessoa parcialmente fora do quadro**: a suavização evita o alerta falso, mas atrasa a detecção de presença em até ~0,6 s.
 
 ## Conclusão
 
-[Ajuste com os números finais.] O modelo treinado reconhece o estado dos aparelhos e a presença de pessoas com mAP@50 de [preencher], rodando a [preencher] FPS em CPU comum, o que permite usar um notebook antigo ou um mini PC como sensor. A regra temporal transforma detecções instáveis quadro a quadro em eventos confiáveis, e a integração com o n8n reaproveita o fluxo de alertas do SeguWatts sem que nenhuma imagem saia da casa.
+O modelo treinado reconhece o estado da iluminação com mAP@50 de 0,783 no conjunto de teste (0,896 e 0,924 para luminária acesa e apagada) e, combinado à detecção de pessoas do COCO, rodando a [preencher] FPS em CPU comum, o que permite usar um notebook antigo ou um mini PC como sensor. A regra temporal transforma detecções instáveis quadro a quadro em eventos confiáveis, e a integração com o n8n reaproveita o fluxo de alertas do SeguWatts sem que nenhuma imagem saia da casa.
 
 **Limitações:** o modelo foi treinado com um dataset público e pode errar em casas com luminárias muito diferentes; a TV ficou fora desta versão por falta de dataset público com o estado ligada/desligada; ele não mede consumo, então a estimativa em R$ usa potências típicas; e uma câmera dentro de casa exige consentimento explícito de todos os moradores.
 

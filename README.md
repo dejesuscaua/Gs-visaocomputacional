@@ -114,13 +114,16 @@ python scripts/medir_fps.py --fonte 0                          # resultados/fps.
 
 ## Resultados
 
-| Métrica (conjunto de teste) | Valor |
+| Métrica (conjunto de teste, 34 imagens) | Valor |
 |---|---|
-| mAP@50 | `[preencher]` |
-| mAP@50-95 | `[preencher]` |
-| Precisão | `[preencher]` |
-| Recall | `[preencher]` |
-| FPS em CPU (640 px) | `[preencher]` |
+| mAP@50 | **0,783** |
+| mAP@50-95 | **0,529** |
+| Precisão | 0,706 |
+| Recall | 0,709 |
+| mAP@50 luminária acesa / apagada | 0,896 / 0,924 |
+| FPS (640 px) | `[preencher com a célula 8]` |
+
+Dataset: [Light Detection v3](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq/dataset/3) (Roboflow Universe, 695 imagens, CC BY 4.0). Treino: YOLO11n a partir do COCO, parada antecipada na época 69 (melhor na 49), ~10 min numa T4.
 
 Figuras em `resultados/`: curvas de treino, matriz de confusão, curva precisão × recall e exemplos de detecção.
 

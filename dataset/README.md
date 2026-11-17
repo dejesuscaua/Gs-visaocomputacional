@@ -32,7 +32,9 @@ O treino usa um dataset público já anotado do Roboflow Universe, baixado pelo 
 | Dataset | [Light Detection · infocomm-thingy](https://universe.roboflow.com/infocomm-thingy/light-detection-gecjq) |
 | Classes originais | `Lamp On`, `Lamp Off`, `Light Bulb On`, `Light Bulb Off` |
 | Tradução | `*On` → `lampada_acesa`; `*Off` → `lampada_apagada` (`normalizar_classe`) |
-| Versão, número de imagens e licença | `[preencher a partir da célula 2 do notebook]` |
+| Versão | 3 (exportada em 29/08/2024) |
+| Imagens | 695 (treino 603, validação 58, teste 34) |
+| Licença | CC BY 4.0 (uso permitido com atribuição) |
 
 Pessoas vêm da YOLO pré-treinada no COCO; por isso o dataset não precisa da classe `pessoa`. As fotos próprias abaixo continuam válidas para melhorar o modelo nas casas reais (versão 2).
 
