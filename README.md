@@ -34,7 +34,7 @@ flowchart LR
 |---|---|
 | `lampada_acesa` / `lampada_apagada` | **YOLO11n treinada pela equipe** com um dataset público de lâmpadas do Roboflow Universe (`Lamp On`, `Light Bulb On`, `Lamp Off`, `Light Bulb Off`) |
 | `pessoa` | YOLO11n pré-treinada no COCO, rodando no mesmo quadro |
-| `tela_ligada` / `tela_desligada` | suportadas pelo código; ficam como próximo passo, porque não há dataset público com o estado da TV |
+| `tela_ligada` / `tela_desligada` | a YOLO COCO acha a TV; o estado vem do **brilho da tela** (`estado_tela()` em `config.py`): tela bem mais clara que o quadro, ou com imagem, conta como ligada |
 
 Os nomes de classe de qualquer dataset são traduzidos para o vocabulário do SeguWatts por `normalizar_classe()` (`seguwatts_vision/config.py`), com testes em `tests/test_config.py`.
 
@@ -85,7 +85,7 @@ pip install -r requirements.txt
 python -m seguwatts_vision.detector --pre-treinado --demo
 ```
 
-Nesse modo o COCO reconhece pessoa e TV, mas não sabe se a TV está ligada: toda TV conta como ligada. Serve só para testar a integração.
+Nesse modo o COCO reconhece pessoa e TV (estado pelo brilho da tela), mas não lâmpadas. Serve para testar a integração.
 
 **Com o modelo da equipe** (`modelo/best.pt`, gerado pelo notebook):
 
@@ -136,7 +136,7 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-São 34 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento abre uma única vez, fecha quando a pessoa volta ou a luz apaga, ignora quadros isolados e detecções fracas, não depende do FPS, aquecimento ao ligar a câmera), a tradução dos nomes de classe dos datasets e a saída de eventos (CSV, webhook, falha de rede, recusa de `http` sem TLS).
+São 41 testes, rodados no GitHub Actions a cada push. Cobrem a regra (evento abre uma única vez, fecha quando a pessoa volta ou a luz apaga, ignora quadros isolados e detecções fracas, não depende do FPS, aquecimento ao ligar a câmera), a tradução dos nomes de classe dos datasets, o estado da TV pelo brilho e a saída de eventos (CSV, webhook, falha de rede, recusa de `http` sem TLS).
 
 ## Privacidade e ética (LGPD)
 

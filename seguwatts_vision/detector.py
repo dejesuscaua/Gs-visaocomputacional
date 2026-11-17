@@ -18,7 +18,15 @@ from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
-from seguwatts_vision.config import CLASSES_DESLIGADO, CLASSES_LIGADO, CLASSES_PRESENCA, Config, normalizar_classe
+from seguwatts_vision.config import (
+    CLASSES_DESLIGADO,
+    CLASSES_LIGADO,
+    CLASSES_PRESENCA,
+    Config,
+    estado_tela,
+    nome_tem_estado,
+    normalizar_classe,
+)
 from seguwatts_vision.eventos import SaidaEventos
 from seguwatts_vision.regra import Deteccao, Estado, MonitorDesperdicio, Resultado
 
@@ -51,13 +59,31 @@ def cor_da_classe(classe: str) -> tuple[int, int, int]:
 
 
 COCO_PESSOA = 0  # índice da classe "person" no COCO
+COCO_TV = 62  # índice da classe "tv" no COCO
+COCO_CLASSES = [COCO_PESSOA, COCO_TV]
 
 
-def extrair_deteccoes(resultado) -> list[Deteccao]:
+def classificar_tela(quadro, caixa) -> str:
+    """Olha o brilho dentro da caixa da TV (sem a moldura) e decide ligada ou desligada."""
+    cinza = cv2.cvtColor(quadro, cv2.COLOR_BGR2GRAY)
+    h, w = cinza.shape
+    x1, y1, x2, y2 = (int(v) for v in caixa)
+    x1, x2 = max(0, x1), min(w, x2)
+    y1, y2 = max(0, y1), min(h, y2)
+    mx, my = (x2 - x1) // 10, (y2 - y1) // 10  # descarta 10% de cada borda (moldura)
+    tela = cinza[y1 + my:y2 - my, x1 + mx:x2 - mx]
+    if tela.size == 0:
+        return "tela_desligada"
+    return estado_tela(float(tela.mean()), float(tela.std()), float(cinza.mean()))
+
+
+def extrair_deteccoes(resultado, quadro=None) -> list[Deteccao]:
     """Converte a saída da YOLO em detecções com os nomes do SeguWatts.
 
     O nome de cada classe passa por normalizar_classe(): "Lamp On" vira lampada_acesa,
     "person" vira pessoa, e classes sem interesse (cadeira, garrafa...) são descartadas.
+    Uma TV sem estado no nome ("tv" do COCO) tem o estado decidido pelo brilho da tela,
+    quando o quadro é informado.
     """
     nomes = resultado.names
     caixas = resultado.boxes
@@ -65,9 +91,14 @@ def extrair_deteccoes(resultado) -> list[Deteccao]:
         return []
     deteccoes = []
     for c, p, xyxy in zip(caixas.cls.tolist(), caixas.conf.tolist(), caixas.xyxy.tolist()):
-        classe = normalizar_classe(nomes[int(c)])
-        if classe is not None:
-            deteccoes.append(Deteccao(classe, float(p), tuple(map(float, xyxy))))
+        nome = nomes[int(c)]
+        classe = normalizar_classe(nome)
+        if classe is None:
+            continue
+        caixa = tuple(map(float, xyxy))
+        if classe == "tela_ligada" and quadro is not None and not nome_tem_estado(nome):
+            classe = classificar_tela(quadro, caixa)
+        deteccoes.append(Deteccao(classe, float(p), caixa))
     return deteccoes
 
 
@@ -133,21 +164,19 @@ def executar(args: argparse.Namespace) -> None:
     cfg = Config()
     limite = 10.0 if args.demo else (args.limite or cfg.limite_s)
     if args.pre_treinado:
-        # O COCO reconhece "tv" mas não sabe se ela está ligada: toda TV vira tela_ligada.
-        # Serve só para testar câmera, regra, eventos e webhook, não como resultado.
-        logging.warning("modo --pre-treinado: pesos COCO, toda TV conta como ligada. Use só para testar a integração.")
+        # Só pesos COCO: pessoa e TV (estado da TV pelo brilho da tela), sem lâmpadas.
+        logging.warning("modo --pre-treinado: pesos COCO, detecta pessoa e TV, mas não lâmpadas.")
     modelo = YOLO("yolo11n.pt" if args.pre_treinado else args.modelo)
     conhecidas = classes_do_modelo(modelo)
     logging.info("classes do modelo principal: %s", ", ".join(sorted(conhecidas)) or "nenhuma reconhecida")
     if not conhecidas & (CLASSES_LIGADO | CLASSES_DESLIGADO):
         logging.warning("o modelo principal não tem classes de aparelho: nenhum desperdício será detectado")
-    # O modelo treinado pela equipe cuida dos aparelhos. Se ele não tiver a classe pessoa
-    # (caso do dataset público de lâmpadas), um segundo modelo, a YOLO pré-treinada no
-    # COCO, detecta só pessoas no mesmo quadro.
+    # O modelo treinado pela equipe cuida das lâmpadas. Pessoa e TV, que ele não tem
+    # (dataset público de lâmpadas), vêm da YOLO pré-treinada no COCO no mesmo quadro.
     modelo_pessoas = None
-    if "pessoa" not in conhecidas:
+    if not {"pessoa", "tela_ligada"} <= conhecidas:
         modelo_pessoas = YOLO(args.modelo_pessoas)
-        logging.info("pessoas detectadas por %s (COCO)", args.modelo_pessoas)
+        logging.info("pessoas e TVs detectadas por %s (COCO)", args.modelo_pessoas)
     monitor = MonitorDesperdicio(args.comodo or cfg.comodo, limite_s=limite, janela_s=cfg.janela_s, confianca_min=cfg.confianca_min)
     saida = SaidaEventos(cfg.arquivo_eventos, cfg.tarifa_rs_kwh, cfg.webhook_url)
 
@@ -168,10 +197,10 @@ def executar(args: argparse.Namespace) -> None:
             agora = inicio_video + cap.get(cv2.CAP_PROP_POS_MSEC) / 1000 if eh_arquivo else time.time()
 
             resultado = modelo(quadro, imgsz=args.imgsz, conf=0.25, verbose=False)[0]
-            deteccoes = extrair_deteccoes(resultado)
+            deteccoes = extrair_deteccoes(resultado, quadro)
             if modelo_pessoas is not None:
-                pessoas = modelo_pessoas(quadro, imgsz=args.imgsz, conf=0.25, classes=[COCO_PESSOA], verbose=False)[0]
-                deteccoes += extrair_deteccoes(pessoas)
+                coco = modelo_pessoas(quadro, imgsz=args.imgsz, conf=0.25, classes=COCO_CLASSES, verbose=False)[0]
+                deteccoes += extrair_deteccoes(coco, quadro)
             r = monitor.atualizar(deteccoes, agora)
             if r.evento_aberto:
                 saida.publicar(r.evento_aberto)
@@ -218,7 +247,7 @@ def main() -> None:
     p.add_argument("--fonte", default="0", help="índice da webcam (0, 1...) ou caminho de vídeo")
     p.add_argument("--modelo", default="modelo/best.pt", help="pesos YOLO treinados (aparelhos)")
     p.add_argument("--modelo-pessoas", default="yolo11n.pt",
-                   help="pesos COCO para detectar pessoas quando o modelo treinado não tem a classe pessoa")
+                   help="pesos COCO para detectar pessoas e TVs (o modelo treinado só tem lâmpadas)")
     p.add_argument("--comodo", default=None, help="nome do cômodo (padrão: variável COMODO ou 'sala')")
     p.add_argument("--limite", type=float, default=None, help="segundos sem ninguém até abrir o evento")
     p.add_argument("--demo", action="store_true", help="limite de 10 s para demonstração")

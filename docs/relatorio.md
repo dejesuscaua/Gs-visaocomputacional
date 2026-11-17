@@ -113,9 +113,9 @@ Erros observados no teste e no vídeo (inclua a imagem de cada um a partir de `r
 
 O modelo treinado reconhece o estado da iluminação com mAP@50 de 0,783 no conjunto de teste (0,896 e 0,924 para luminária acesa e apagada) e, combinado à detecção de pessoas do COCO, rodando a cerca de 10 FPS em CPU, sem GPU, o que permite usar um notebook antigo ou um mini PC como sensor. A regra temporal transforma detecções instáveis quadro a quadro em eventos confiáveis, e a integração com o n8n reaproveita o fluxo de alertas do SeguWatts sem que nenhuma imagem saia da casa.
 
-**Limitações:** o modelo foi treinado com um dataset público e pode errar em casas com luminárias muito diferentes; a TV ficou fora desta versão por falta de dataset público com o estado ligada/desligada; ele não mede consumo, então a estimativa em R$ usa potências típicas; e uma câmera dentro de casa exige consentimento explícito de todos os moradores.
+**Limitações:** o modelo foi treinado com um dataset público e pode errar em casas com luminárias muito diferentes; o estado da TV não vem de um modelo treinado, e sim de uma regra de brilho sobre a caixa da TV detectada pelo COCO (tela clara e com imagem = ligada), validada em 7 fotos reais de sala, todas classificadas corretamente como ligada; essa regra pode errar com uma tela preta refletindo uma janela muito clara; ele não mede consumo, então a estimativa em R$ usa potências típicas; e uma câmera dentro de casa exige consentimento explícito de todos os moradores.
 
-**Próximos passos:** acrescentar fotos das casas da equipe ao dataset (protocolo em `dataset/README.md`), incluir TV ligada/desligada e ventilador, rodar o modelo em uma ESP32-S3 com câmera, integrando-o ao EcoBot, e cruzar os eventos com o consumo medido pelos sensores de tomada para confirmar o desperdício em kWh reais.
+**Próximos passos:** acrescentar fotos das casas da equipe ao dataset (protocolo em `dataset/README.md`), treinar o estado da TV com fotos próprias no lugar da regra de brilho, incluir ventilador, rodar o modelo em uma ESP32-S3 com câmera, integrando-o ao EcoBot, e cruzar os eventos com o consumo medido pelos sensores de tomada para confirmar o desperdício em kWh reais.
 
 ## Links
 

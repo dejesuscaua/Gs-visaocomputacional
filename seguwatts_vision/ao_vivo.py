@@ -14,7 +14,7 @@ import numpy as np
 from ultralytics import YOLO
 
 from seguwatts_vision.config import Config
-from seguwatts_vision.detector import COCO_PESSOA, classes_do_modelo, desenhar, extrair_deteccoes
+from seguwatts_vision.detector import COCO_CLASSES, classes_do_modelo, desenhar, extrair_deteccoes
 from seguwatts_vision.eventos import SaidaEventos
 from seguwatts_vision.regra import MonitorDesperdicio, Resultado
 
@@ -36,7 +36,7 @@ class SessaoAoVivo:
         self.imgsz = imgsz
         self.modelo = YOLO(modelo)
         conhecidas = classes_do_modelo(self.modelo)
-        self.modelo_pessoas = None if "pessoa" in conhecidas else YOLO(modelo_pessoas)
+        self.modelo_pessoas = None if {"pessoa", "tela_ligada"} <= conhecidas else YOLO(modelo_pessoas)
         self.monitor = MonitorDesperdicio(comodo, limite_s=limite_s, janela_s=cfg.janela_s,
                                           confianca_min=cfg.confianca_min)
         self.saida = SaidaEventos(cfg.arquivo_eventos, cfg.tarifa_rs_kwh, cfg.webhook_url)
@@ -47,10 +47,10 @@ class SessaoAoVivo:
     def processar(self, quadro: np.ndarray, agora: float | None = None) -> tuple[np.ndarray, Resultado]:
         """Recebe um quadro BGR, devolve o mesmo quadro anotado e o estado do cômodo."""
         agora = time.time() if agora is None else agora
-        deteccoes = extrair_deteccoes(self.modelo(quadro, imgsz=self.imgsz, conf=0.25, verbose=False)[0])
+        deteccoes = extrair_deteccoes(self.modelo(quadro, imgsz=self.imgsz, conf=0.25, verbose=False)[0], quadro)
         if self.modelo_pessoas is not None:
-            pessoas = self.modelo_pessoas(quadro, imgsz=self.imgsz, conf=0.25, classes=[COCO_PESSOA], verbose=False)[0]
-            deteccoes += extrair_deteccoes(pessoas)
+            coco = self.modelo_pessoas(quadro, imgsz=self.imgsz, conf=0.25, classes=COCO_CLASSES, verbose=False)[0]
+            deteccoes += extrair_deteccoes(coco, quadro)
 
         r = self.monitor.atualizar(deteccoes, agora)
         for evento in (r.evento_aberto, r.evento_encerrado):
